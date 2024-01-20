@@ -1,0 +1,19 @@
+{
+	"version": 1,
+	"changelists": [
+		{
+			"guid": "00000000000000000000000000000000",
+			"description": "Default Uncontrolled Changelist",
+			"files": [
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/StarterContent/Maps/Advanced_Lighting_BuiltData.uasset",
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/GameplayElements/BP_WinArea.uasset",
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/Stylized_Egypt/Maps/Stylized_Egypt_Demo.umap",
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/GameplayElements/WBP_WinScreen.uasset",
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.uasset",
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/GameplayElements/BP_WoodenBox.uasset",
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/ThirdPerson/Input/IMC_Default.uasset",
+				"C:/Users/Owner/Documents/Unreal Projects/CoopAdventure/Content/ThirdPerson/Input/Actions/IA_Zoom.uasset"
+			]
+		}
+	]
+}
