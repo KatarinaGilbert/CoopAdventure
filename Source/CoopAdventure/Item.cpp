@@ -13,6 +13,11 @@ AItem::AItem()
 
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
 	RootComponent = ItemMesh;
+
+	bReplicates = true;
+	SetReplicateMovement(true);
+
+	ItemData.ItemClass = GetClass();
 }
 
 // Called when the game starts or when spawned
@@ -23,10 +28,10 @@ void AItem::BeginPlay()
 
 void AItem::Interact(class ACoopAdventureCharacter* Character)
 {
-	if (Character) {
-		Character->AddItemToInventoryWidget(ItemData);
+	if (HasAuthority() && Character) {
+		Character->AddInventoryItem(ItemData);
+		Destroy();
 	}
-	Destroy();
 }
 
 void AItem::Use(ACoopAdventureCharacter* Character)

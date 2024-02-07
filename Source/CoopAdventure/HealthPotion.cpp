@@ -6,7 +6,7 @@
 
 AHealthPotion::AHealthPotion()
 {
-	HealthValue = 10.0f;
+	HealthValue = 10;
 }
 
 void AHealthPotion::Use(ACoopAdventureCharacter* Character)

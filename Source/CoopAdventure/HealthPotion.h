@@ -18,7 +18,7 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere)
-	float HealthValue;
+	int HealthValue;
 
 
 public:

@@ -11,6 +11,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Item.h"
+#include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -83,16 +84,46 @@ void ACoopAdventureCharacter::BeginPlay()
 	}
 }
 
-void ACoopAdventureCharacter::AddHealth(float Value)
+void ACoopAdventureCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(ACoopAdventureCharacter, InventoryItems, COND_OwnerOnly);
+	DOREPLIFETIME(ACoopAdventureCharacter, Health);
+	DOREPLIFETIME(ACoopAdventureCharacter, Fullness);
+}
+
+void ACoopAdventureCharacter::OnRep_Stats()
+{
+	if (IsLocallyControlled()) {
+		UpdateStats(Health, Fullness);
+	}
+}
+
+void ACoopAdventureCharacter::AddInventoryItem(FItemData ItemData) {
+	if (HasAuthority()) {
+		InventoryItems.Add(ItemData);
+		if (IsLocallyControlled()) {
+			OnRep_InventoryItems();
+		}
+	}
+}
+
+void ACoopAdventureCharacter::AddHealth(int Value)
 {
 	Health += Value;
+	if (IsLocallyControlled()) {
+		UpdateStats(Health, Fullness);
+	}
 	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Added Health: %f"), Health));
 }
 
-void ACoopAdventureCharacter::DecreaseHunger(float Value)
+void ACoopAdventureCharacter::IncreaseFullness(int Value)
 {
-	Hunger += Value;
-	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Decreased Hunger: %f"), Hunger));
+	Fullness += Value;
+	if (IsLocallyControlled()) {
+		UpdateStats(Health, Fullness);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Decreased Hunger: %f"), Fullness));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -133,6 +164,15 @@ void ACoopAdventureCharacter::Interact(const FInputActionValue& Value)
 	FVector Start = FollowCamera->GetComponentLocation();
 	FVector End = Start + FollowCamera->GetForwardVector() * 700.f;	//!!! Might need to increase to 700.f later on because of the scrolling camera feature. Increased from 500.f
 
+	if (HasAuthority()) {
+		Interact(Start, End);
+	}
+	else {
+		Server_Interact(Start, End);
+	}
+}
+
+void ACoopAdventureCharacter::Interact(FVector Start, FVector End) {
 	FHitResult HitResult;
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
@@ -143,7 +183,16 @@ void ACoopAdventureCharacter::Interact(const FInputActionValue& Value)
 			Interface->Interact(this);
 		}
 	}
+}
 
+bool ACoopAdventureCharacter::Server_Interact_Validate(FVector Start, FVector End)
+{
+	return true;
+}
+
+void ACoopAdventureCharacter::Server_Interact_Implementation(FVector Start, FVector End)
+{
+	Interact(Start, End);
 }
 
 void ACoopAdventureCharacter::Move(const FInputActionValue& Value)
@@ -169,14 +218,43 @@ void ACoopAdventureCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
+void ACoopAdventureCharacter::UpdateStats_Implementation(float HealthValue, float FoodValue)
+{
+
+}
+
 void ACoopAdventureCharacter::UseItem(TSubclassOf<AItem> ItemSubclass)
 {
 	if (ItemSubclass) {
-		if (AItem* Item = ItemSubclass.GetDefaultObject()) {
-			Item->Use(this);
+		if (HasAuthority()) {
+			if (AItem* Item = ItemSubclass.GetDefaultObject()) {
+				Item->Use(this);
+			}
 		}
+		else {
+			if (AItem* Item = ItemSubclass.GetDefaultObject()) {
+				Item->Use(this);
+			}
+			Server_UseItem(ItemSubclass);
+		}
+
 	}
 }
+
+bool ACoopAdventureCharacter::Server_UseItem_Validate(TSubclassOf<AItem> ItemSubclass) {
+	return true;
+}
+
+void ACoopAdventureCharacter::Server_UseItem_Implementation(TSubclassOf<AItem> ItemSubclass) {
+	for (FItemData& Item : InventoryItems) {
+		if (Item.ItemClass == ItemSubclass) {
+			UseItem(ItemSubclass);
+			return;
+		}
+	}
+
+}
+
 
 void ACoopAdventureCharacter::Look(const FInputActionValue& Value)
 {
@@ -209,5 +287,12 @@ void ACoopAdventureCharacter::Zoom(const FInputActionValue& Value)
 			CameraBoom->TargetArmLength += ZoomValue * ZoomSpeed;
 			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("New CameraBoom->TargetArmLength: %f"), CameraBoom->TargetArmLength));
 		}
+	}
+}
+
+void ACoopAdventureCharacter::OnRep_InventoryItems()
+{
+	if (InventoryItems.Num()) {
+		AddItemToInventoryWidget(InventoryItems[InventoryItems.Num() - 1]);
 	}
 }

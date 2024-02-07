@@ -62,16 +62,41 @@ public:
 	
 
 protected:
-	UPROPERTY(BlueprintReadWrite, Category = "Stats")
+	UFUNCTION(BlueprintNativeEvent, Category = "Stats")
+	void UpdateStats(float HealthValue, float FoodValue);
+
+	UPROPERTY(ReplicatedUsing = OnRep_InventoryItems, BlueprintReadWrite, Category = "Stats")
+	TArray<FItemData> InventoryItems;
+
+	UFUNCTION()
+	void OnRep_InventoryItems();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
+	void AddItemToInventoryWidget(FItemData ItemData);
+
+	UPROPERTY(ReplicatedUsing = OnRep_Stats, BlueprintReadWrite, Category = "Stats")
 	float Health;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Stats")
-	float Hunger;
+	UPROPERTY(ReplicatedUsing = OnRep_Stats, BlueprintReadWrite, Category = "Stats")
+	float Fullness;
+	
+	UFUNCTION()
+	void OnRep_Stats();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void UseItem(TSubclassOf<AItem> ItemSubclass);
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_UseItem(TSubclassOf<AItem> ItemSubclass);
+
 	void Interact(const FInputActionValue& Value);
+
+	void Interact(FVector Start, FVector End);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_Interact(FVector Start, FVector End);
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
@@ -96,12 +121,10 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
-	void AddItemToInventoryWidget(FItemData ItemData);
+	void AddInventoryItem(FItemData ItemData);
 
-	void AddHealth(float Value);
-
-	void DecreaseHunger(float Value);
+	void AddHealth(int Value);
+	void IncreaseFullness(int Value);
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float ZoomSpeed;
