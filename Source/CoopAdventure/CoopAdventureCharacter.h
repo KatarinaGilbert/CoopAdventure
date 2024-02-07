@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "Structs.h"
 #include "CoopAdventureCharacter.generated.h"
 
+class AItem;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
@@ -32,6 +34,10 @@ class ACoopAdventureCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
 
+	/** Interact Input Action**/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractAction;
+
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* JumpAction;
@@ -48,9 +54,6 @@ class ACoopAdventureCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* ZoomAction;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float ZoomSpeed;
-
 	float MinZoomSpeed;
 	float MaxZoomSpeed;
 
@@ -59,6 +62,16 @@ public:
 	
 
 protected:
+	UPROPERTY(BlueprintReadWrite, Category = "Stats")
+	float Health;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Stats")
+	float Hunger;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void UseItem(TSubclassOf<AItem> ItemSubclass);
+
+	void Interact(const FInputActionValue& Value);
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
@@ -82,5 +95,15 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
+	void AddItemToInventoryWidget(FItemData ItemData);
+
+	void AddHealth(float Value);
+
+	void DecreaseHunger(float Value);
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float ZoomSpeed;
 };
 

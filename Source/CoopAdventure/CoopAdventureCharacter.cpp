@@ -10,6 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Item.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -82,6 +83,18 @@ void ACoopAdventureCharacter::BeginPlay()
 	}
 }
 
+void ACoopAdventureCharacter::AddHealth(float Value)
+{
+	Health += Value;
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Added Health: %f"), Health));
+}
+
+void ACoopAdventureCharacter::DecreaseHunger(float Value)
+{
+	Hunger += Value;
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Decreased Hunger: %f"), Hunger));
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -90,6 +103,10 @@ void ACoopAdventureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
+		//Interact
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACoopAdventureCharacter::Interact);
+
+
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -107,6 +124,26 @@ void ACoopAdventureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 	{
 		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
+}
+
+void ACoopAdventureCharacter::Interact(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Interacting")));
+
+	FVector Start = FollowCamera->GetComponentLocation();
+	FVector End = Start + FollowCamera->GetForwardVector() * 700.f;	//!!! Might need to increase to 700.f later on because of the scrolling camera feature. Increased from 500.f
+
+	FHitResult HitResult;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility, Params)) {
+		if (IInteractableInterface* Interface = Cast<IInteractableInterface>(HitResult.GetActor())) {
+
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName()));
+			Interface->Interact(this);
+		}
+	}
+
 }
 
 void ACoopAdventureCharacter::Move(const FInputActionValue& Value)
@@ -129,6 +166,15 @@ void ACoopAdventureCharacter::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
+	}
+}
+
+void ACoopAdventureCharacter::UseItem(TSubclassOf<AItem> ItemSubclass)
+{
+	if (ItemSubclass) {
+		if (AItem* Item = ItemSubclass.GetDefaultObject()) {
+			Item->Use(this);
+		}
 	}
 }
 
