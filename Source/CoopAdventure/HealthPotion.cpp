@@ -9,9 +9,11 @@ AHealthPotion::AHealthPotion()
 	HealthValue = 10;
 }
 
-void AHealthPotion::Use(ACoopAdventureCharacter* Character)
+void AHealthPotion::Use(ACoopAdventureCharacter* Character, bool IsInShop)
 {
-	if (Character) {
+	Super::Use(Character, IsInShop);
+
+	if (Character && !IsInShop) {
 		Character->AddHealth(HealthValue);
 	}
 }

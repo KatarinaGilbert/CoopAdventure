@@ -11,6 +11,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Item.h"
+#include "Chimes.h"
+#include "ShopKeeper.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -58,6 +60,7 @@ ACoopAdventureCharacter::ACoopAdventureCharacter()
 	ZoomSpeed = 10.f;
 	MinZoomSpeed = 5.f;
 	MaxZoomSpeed = 100.f;
+	Chimes = 0;
 }
 
 void ACoopAdventureCharacter::BeginPlay()
@@ -90,6 +93,7 @@ void ACoopAdventureCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_CONDITION(ACoopAdventureCharacter, InventoryItems, COND_OwnerOnly);
 	DOREPLIFETIME(ACoopAdventureCharacter, Health);
 	DOREPLIFETIME(ACoopAdventureCharacter, Fullness);
+	DOREPLIFETIME(ACoopAdventureCharacter, Chimes)
 }
 
 void ACoopAdventureCharacter::OnRep_Stats()
@@ -99,12 +103,104 @@ void ACoopAdventureCharacter::OnRep_Stats()
 	}
 }
 
+void ACoopAdventureCharacter::OnRep_Currency()
+{
+
+	if (IsLocallyControlled()) {
+		UpdateChimeAmount(Chimes);
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("OnRep_Currency: Current Player Chimes: %d"), Chimes));
+	}
+}
+
+int32 ACoopAdventureCharacter::GetCurrentChimes() {
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Current Player Chimes: %d"), Chimes));
+	
+	return Chimes;
+}
+
+void ACoopAdventureCharacter::RemoveChimes(int32 Cost)
+{
+	Chimes -= Cost;
+	if (IsLocallyControlled()) {
+		UpdateChimeAmount(Chimes);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Current Chimes Amount: %d"), Chimes));
+	//Chimes -= AmountToRemove;
+
+	/*
+	for (FItemData& Item : InventoryItems) {
+		if (Item.ItemClass->StaticClass() == TSubclassOf<AChimes>()->StaticClass()) {
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Removing Chimes: %d"), AmountToRemove));
+			Item.StackCount -= AmountToRemove;
+		}
+	}
+	*/
+}
+
 void ACoopAdventureCharacter::AddInventoryItem(FItemData ItemData) {
 	if (HasAuthority()) {
-		InventoryItems.Add(ItemData);
+		bool bIsNewItem = true;
+		CheckIfIsCurrency(ItemData);
+		if (IsCurrency) {
+			bIsNewItem = false;
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Updating Currency: %d"), Chimes));
+			AddChimes(ItemData.StackCount);
+		}
+		else {
+			for (FItemData& Item : InventoryItems) {
+				if (Item.ItemClass == ItemData.ItemClass) {
+					if (ItemData.StackCount > 1) {
+						Item.StackCount += ItemData.StackCount;
+					}
+					else {
+						++Item.StackCount;
+					}
+					bIsNewItem = false;
+					break;
+				}
+			}
+
+			if (bIsNewItem) {
+				InventoryItems.Add(ItemData);
+			}
+			if (IsLocallyControlled()) {
+				OnRep_InventoryItems();
+			}
+		}
+
+		
+
+
+		/*previous
+		for (FItemData& Item : InventoryItems) {
+			if (Item.ItemClass == ItemData.ItemClass) {
+				if (ItemData.StackCount > 1) {
+					Item.StackCount += ItemData.StackCount;
+				}
+				else {
+					++Item.StackCount;
+				}
+				bIsNewItem = false;
+				break;
+			}
+		}
+		if (bIsNewItem && !IsCurrency) {
+			InventoryItems.Add(ItemData);	
+		}
 		if (IsLocallyControlled()) {
 			OnRep_InventoryItems();
 		}
+		*/
+	}
+}
+
+void ACoopAdventureCharacter::OnRep_InventoryItems()
+{
+	if (InventoryItems.Num()) {
+		AddItemAndUpdateInventoryWidget(InventoryItems[InventoryItems.Num() - 1], InventoryItems);
+	}
+	else {
+		AddItemAndUpdateInventoryWidget(FItemData(), InventoryItems);
 	}
 }
 
@@ -124,6 +220,15 @@ void ACoopAdventureCharacter::IncreaseFullness(int Value)
 		UpdateStats(Health, Fullness);
 	}
 	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Decreased Hunger: %f"), Fullness));
+}
+
+void ACoopAdventureCharacter::AddChimes(int Value)
+{
+	Chimes += Value;
+	if (IsLocallyControlled()) {
+		UpdateChimeAmount(Chimes);
+	}
+	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Current Chimes Amount: %d"), Chimes));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -168,6 +273,7 @@ void ACoopAdventureCharacter::Interact(const FInputActionValue& Value)
 		Interact(Start, End);
 	}
 	else {
+		Interact(Start, End);
 		Server_Interact(Start, End);
 	}
 }
@@ -177,6 +283,14 @@ void ACoopAdventureCharacter::Interact(FVector Start, FVector End) {
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility, Params)) {
+		AShopKeeper* ShopKeeper = Cast<AShopKeeper>(HitResult.GetActor());
+		if (ShopKeeper) {
+			if (IsLocallyControlled()) {
+				ShopKeeper->Interact(this);
+			}
+			return;
+		}
+		
 		if (IInteractableInterface* Interface = Cast<IInteractableInterface>(HitResult.GetActor())) {
 
 			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::White, FString::Printf(TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName()));
@@ -223,36 +337,84 @@ void ACoopAdventureCharacter::UpdateStats_Implementation(float HealthValue, floa
 
 }
 
-void ACoopAdventureCharacter::UseItem(TSubclassOf<AItem> ItemSubclass)
+void ACoopAdventureCharacter::UpdateChimeAmount_Implementation(int ChimeValue)
+{
+
+}
+
+
+
+void ACoopAdventureCharacter::UseItem(TSubclassOf<AItem> ItemSubclass, AShopKeeper* ShopKeeper, bool IsShopItem)
 {
 	if (ItemSubclass) {
 		if (HasAuthority()) {
-			if (AItem* Item = ItemSubclass.GetDefaultObject()) {
-				Item->Use(this);
+			if (!ShopKeeper) {
+				UseRemoveItem(ItemSubclass);
+			}
+			else {
+				ShopKeeper->BuyItem(this, ItemSubclass);
+				if (IsLocallyControlled()) {
+					OnRep_InventoryItems();
+				}
 			}
 		}
 		else {
-			if (AItem* Item = ItemSubclass.GetDefaultObject()) {
-				Item->Use(this);
+			if (ShopKeeper) {
+				if (!ShopKeeper->BuyItem(this, ItemSubclass)) {
+					return;
+				}
 			}
-			Server_UseItem(ItemSubclass);
+			if (AItem* Item = ItemSubclass.GetDefaultObject()) {
+				Item->Use(this, IsShopItem);
+			}
+			Server_UseItem(ItemSubclass, ShopKeeper, IsShopItem);
 		}
+
 
 	}
 }
 
-bool ACoopAdventureCharacter::Server_UseItem_Validate(TSubclassOf<AItem> ItemSubclass) {
+void ACoopAdventureCharacter::UseRemoveItem(TSubclassOf<AItem> ItemSubclass) {
+	uint8 Index = 0;
+	for (FItemData& Item : InventoryItems) {
+		if (Item.ItemClass == ItemSubclass) {
+			if (AItem* ItemCDO = ItemSubclass.GetDefaultObject()) {
+				ItemCDO->Use(this, false);
+			}
+			--Item.StackCount;
+			if (Item.StackCount <= 0) {
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, FString::Printf(TEXT("Before Shrink InventoryItems size: %d"), InventoryItems.Num()));
+				InventoryItems.RemoveAt(Index);
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, FString::Printf(TEXT("After Shrink InventoryItems size: %d"), InventoryItems.Num()));
+			}
+			break;
+		}
+		++Index;
+	}
+
+	if (IsLocallyControlled()) {
+		OnRep_InventoryItems();
+	}
+}
+
+bool ACoopAdventureCharacter::Server_UseItem_Validate(TSubclassOf<AItem> ItemSubclass, AShopKeeper* ShopKeeper, bool IsShopItem) {
 	return true;
 }
 
-void ACoopAdventureCharacter::Server_UseItem_Implementation(TSubclassOf<AItem> ItemSubclass) {
-	for (FItemData& Item : InventoryItems) {
-		if (Item.ItemClass == ItemSubclass) {
-			UseItem(ItemSubclass);
-			return;
+void ACoopAdventureCharacter::Server_UseItem_Implementation(TSubclassOf<AItem> ItemSubclass, AShopKeeper* ShopKeeper, bool IsShopItem) {
+	if (IsShopItem) {
+		UseItem(ItemSubclass, ShopKeeper, IsShopItem);
+	}
+	else {
+		for (FItemData& Item : InventoryItems) {
+			if (Item.ItemClass == ItemSubclass) {
+				if (Item.StackCount) {
+					UseItem(ItemSubclass, ShopKeeper, IsShopItem);
+				}
+				return;
+			}
 		}
 	}
-
 }
 
 
@@ -274,7 +436,7 @@ void ACoopAdventureCharacter::Zoom(const FInputActionValue& Value)
 	float MinZoom = 300.f;
 	float MaxZoom = 700.f;
 
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::White, FString::Printf(TEXT("This is a test")));
+	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::White, FString::Printf(TEXT("This is a test")));
 
 	// input is an Axis1D
 	float ZoomValue = Value.Get<float>();
@@ -290,9 +452,4 @@ void ACoopAdventureCharacter::Zoom(const FInputActionValue& Value)
 	}
 }
 
-void ACoopAdventureCharacter::OnRep_InventoryItems()
-{
-	if (InventoryItems.Num()) {
-		AddItemToInventoryWidget(InventoryItems[InventoryItems.Num() - 1]);
-	}
-}
+

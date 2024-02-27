@@ -24,14 +24,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "BaseComponents")
 	UStaticMeshComponent* ItemMesh;
 
-	UPROPERTY(EditDefaultsOnly, Category = "BaseComponents")
+	UPROPERTY(EditAnywhere, Category = "BaseComponents")
 	FItemData ItemData;
 
 
 public:	
 	virtual void Interact(class ACoopAdventureCharacter* Character) override;
 
-	virtual void Use(ACoopAdventureCharacter* Character) override;
+	virtual void Use(ACoopAdventureCharacter* Character, bool IsInShop = false) override;
 
 	FItemData GetItemData() const { return ItemData; }
 

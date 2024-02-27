@@ -10,9 +10,11 @@ AFood::AFood()
 
 }
 
-void AFood::Use(ACoopAdventureCharacter* Character)
+void AFood::Use(ACoopAdventureCharacter* Character, bool IsInShop)
 {
-	if (Character) {
+	Super::Use(Character, IsInShop);
+
+	if (Character && !IsInShop) {
 		Character->IncreaseFullness(FoodValue);
 	}
 }

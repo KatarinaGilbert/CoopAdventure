@@ -13,6 +13,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class AShopKeeper;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -65,31 +66,49 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Stats")
 	void UpdateStats(float HealthValue, float FoodValue);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Inventory")
+	void UpdateChimeAmount(int Value);
+
 	UPROPERTY(ReplicatedUsing = OnRep_InventoryItems, BlueprintReadWrite, Category = "Stats")
 	TArray<FItemData> InventoryItems;
+
 
 	UFUNCTION()
 	void OnRep_InventoryItems();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
-	void AddItemToInventoryWidget(FItemData ItemData);
+	void AddItemAndUpdateInventoryWidget(FItemData ItemData, const TArray<FItemData>& CurrentInventory = TArray<FItemData>());
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
+	void CheckIfIsCurrency(FItemData ItemData);
 
 	UPROPERTY(ReplicatedUsing = OnRep_Stats, BlueprintReadWrite, Category = "Stats")
 	float Health;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Stats, BlueprintReadWrite, Category = "Stats")
 	float Fullness;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Currency, BlueprintReadWrite, Category = "Inventory")
+	int32 Chimes;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Inventory")
+	bool IsCurrency;
 	
 	UFUNCTION()
 	void OnRep_Stats();
 
+	UFUNCTION()
+	void OnRep_Currency();
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void UseItem(TSubclassOf<AItem> ItemSubclass);
+	void UseItem(TSubclassOf<AItem> ItemSubclass, AShopKeeper* ShopKeeper, bool IsShopItem = false);
+
+	void UseRemoveItem(TSubclassOf<AItem> ItemSubclass);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_UseItem(TSubclassOf<AItem> ItemSubclass);
+	void Server_UseItem(TSubclassOf<AItem> ItemSubclass, AShopKeeper* ShopKeeper, bool IsShopItem = false);
 
 	void Interact(const FInputActionValue& Value);
 
@@ -120,6 +139,18 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void AddChimes(int Value);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	int32 GetCurrentChimes();
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void RemoveChimes(int32 Cost);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Shop")
+	void OpenShop(AShopKeeper* OwningShop, const TArray<FItemData>& Items);
 
 	void AddInventoryItem(FItemData ItemData);
 

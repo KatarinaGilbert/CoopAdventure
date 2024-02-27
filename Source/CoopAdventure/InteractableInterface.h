@@ -26,5 +26,5 @@ class COOPADVENTURE_API IInteractableInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	virtual void Interact(ACoopAdventureCharacter* Character) = 0;
-	virtual void Use(ACoopAdventureCharacter* Character) {};
+	virtual void Use(ACoopAdventureCharacter* Character, bool IsInShop = false) {};
 };

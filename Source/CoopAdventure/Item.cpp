@@ -34,7 +34,11 @@ void AItem::Interact(class ACoopAdventureCharacter* Character)
 	}
 }
 
-void AItem::Use(ACoopAdventureCharacter* Character)
+void AItem::Use(ACoopAdventureCharacter* Character, bool IsInShop)
 {
+	if (IsInShop && Character) {
+		Character->AddInventoryItem(ItemData);
+		return;
+	}
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::White, FString::Printf(TEXT("Using Item: %s"), *GetName()));
 }

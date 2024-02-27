@@ -22,6 +22,6 @@ protected:
 
 
 public:
-	virtual void Use(ACoopAdventureCharacter* Character) override;
+	virtual void Use(ACoopAdventureCharacter* Character, bool IsInShop = false) override;
 
 };

@@ -11,4 +11,6 @@ struct FItemData {
 	class UTexture2D* ItemImage;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	int ItemCost;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 StackCount = 1;
 };
