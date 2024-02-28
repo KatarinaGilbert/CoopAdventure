@@ -39,13 +39,12 @@ void AShopKeeper::BeginPlay()
 
 void AShopKeeper::OnRep_Items()
 {
-	//if (ACoopAdventureCharacter* Character = Cast<ACoopAdventureCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))) {
-
-	if (ACoopAdventureCharacter* Character = Cast<ACoopAdventureCharacter>(UGameplayStatics::GetPlayerController(GetWorld(), 0))) {
-		if (Character->IsLocallyControlled()) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, FString::Printf(TEXT("Character Chimes: %d"), Character->GetCurrentChimes()));
-			Character->OpenShop(this, Items);
-		}
+	if (ACoopAdventureCharacter* Character = Cast<ACoopAdventureCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))) {
+		//if (Character->IsLocallyControlled()) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Character Chimes: %d"), Character->GetCurrentChimes()));
+			Character->UpdateShop(this, Items);
+			//Character->OpenShop(this, Items);
+		//}
 	}
 }
 
@@ -68,7 +67,7 @@ void AShopKeeper::TransferItem(TSubclassOf<AItem> ItemSubclass)
 		if (Item.ItemClass == ItemSubclass) {
 			--Item.StackCount;
 			Chimes += Item.ItemCost;
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, FString::Printf(TEXT("New Chimes Amount: %d"), Chimes));
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("New Chimes Amount: %d"), Chimes));
 
 			if (Item.StackCount <= 0) {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, FString::Printf(TEXT("Before Shrink InventoryItems size: %d"), Items.Num()));

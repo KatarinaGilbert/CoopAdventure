@@ -152,6 +152,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Shop")
 	void OpenShop(AShopKeeper* OwningShop, const TArray<FItemData>& Items);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Shop")
+	void UpdateShop(AShopKeeper* OwningShop, const TArray<FItemData>& Items);
+
 	void AddInventoryItem(FItemData ItemData);
 
 	void AddHealth(int Value);
