@@ -61,6 +61,7 @@ ACoopAdventureCharacter::ACoopAdventureCharacter()
 	MinZoomSpeed = 5.f;
 	MaxZoomSpeed = 100.f;
 	Chimes = 0;
+	ShopkeeperRef = NULL;
 }
 
 void ACoopAdventureCharacter::BeginPlay()

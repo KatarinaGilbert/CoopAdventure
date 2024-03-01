@@ -162,5 +162,11 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float ZoomSpeed;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	AShopKeeper* ShopkeeperRef;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	AActor* InteractingActorRef;
 };
 
